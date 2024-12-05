@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIP Peers Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function updatePeers() {
+            fetch('/update')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('peers-container');
+                    const responseTimeElem = document.getElementById('response-time');
+
+                    container.innerHTML = '';
+                    responseTimeElem.textContent = `Tempo de resposta: ${data.response_time_ms} ms`;
+
+                    data.peers.forEach(peer => {
+                        const card = document.createElement('div');
+                        let statusClass = peer.status === "ok" ? 'ok' :
+                                          peer.status === "unreachable" ? 'unreachable' :
+                                          peer.status === "unknown" ? 'unknown' : '';
+                        card.className = 'card ' + statusClass;
+                        card.innerHTML = `<strong>${peer.ramal}</strong><br>${peer.response_time} ms`;
+                        container.appendChild(card);
+                    });
+
+                    updateOfflineLog(data.offline_peers); // Atualiza os logs de ramais offline
+                })
+                .catch(error => {
+                    console.error('Erro ao atualizar:', error);
+                    const container = document.getElementById('peers-container');
+                    container.innerHTML = '<p>Erro ao atualizar os dados.</p>';
+                });
+        }
+
+        function updateOfflineLog(offlinePeers) {
+            const listContainer = document.getElementById('offline-list');
+            listContainer.innerHTML = '';
+
+            if (offlinePeers.length === 0) {
+                listContainer.innerHTML = '<p>Não há ramais offline.</p>';
+            } else {
+                offlinePeers.forEach(peer => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${peer.ramal} - ${peer.status} - Tempo de Queda: ${peer.tempo_queda}s`;
+                    listContainer.appendChild(listItem);
+                });
+            }
+        }
+
+        setInterval(updatePeers, 10000);  // Atualiza os dados a cada 10 segundos
+        window.onload = updatePeers;  // Chama ao carregar a página
+    </script>
+</head>
+<body>
+<div style="width: 50%; padding: 20px;">
+    <div class="cabecalho">
+        <h1></h1>
+    </div>
+    <h1>Lista de Ramais</h1>
+    <div class="response-time" id="response-time">Carregando tempo de resposta...</div>
+    <div class="peers-container" id="peers-container">
+        <p>Carregando dados...</p>
+    </div>
+</div>
+
+<div class="offline-list" id="offline-list">
+    <h2>Ramais Offline</h2>
+    <ul>
+        <li>Carregando...</li>
+    </ul>
+</div>
+</body>
+</html>
